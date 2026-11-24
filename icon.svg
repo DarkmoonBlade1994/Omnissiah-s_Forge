@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="112" fill="#141110"/>
+  <rect x="20" y="20" width="472" height="472" rx="94" fill="none" stroke="#c99a49" stroke-width="10" stroke-opacity="0.7"/>
+  <!-- 12-tooth Mechanicus Cogwheel -->
+  <g fill="#9e1f1c" stroke="#c99a49" stroke-width="8" stroke-linejoin="round" transform="translate(256,256)">
+    <g id="teeth">
+      <rect x="-24" y="-176" width="48" height="46" rx="6"/>
+      <rect x="-24" y="-176" width="48" height="46" rx="6" transform="rotate(30)"/>
+      <rect x="-24" y="-176" width="48" height="46" rx="6" transform="rotate(60)"/>
+      <rect x="-24" y="-176" width="48" height="46" rx="6" transform="rotate(90)"/>
+      <rect x="-24" y="-176" width="48" height="46" rx="6" transform="rotate(120)"/>
+      <rect x="-24" y="-176" width="48" height="46" rx="6" transform="rotate(150)"/>
+      <rect x="-24" y="-176" width="48" height="46" rx="6" transform="rotate(180)"/>
+      <rect x="-24" y="-176" width="48" height="46" rx="6" transform="rotate(210)"/>
+      <rect x="-24" y="-176" width="48" height="46" rx="6" transform="rotate(240)"/>
+      <rect x="-24" y="-176" width="48" height="46" rx="6" transform="rotate(270)"/>
+      <rect x="-24" y="-176" width="48" height="46" rx="6" transform="rotate(300)"/>
+      <rect x="-24" y="-176" width="48" height="46" rx="6" transform="rotate(330)"/>
+    </g>
+    <circle r="136" fill="#9e1f1c" stroke="#c99a49" stroke-width="10"/>
+    <circle r="92" fill="#141110" stroke="#c99a49" stroke-width="8"/>
+  </g>
+  <!-- Parchment Checkmark Core -->
+  <path d="M206 258l34 34 72-76" fill="none" stroke="#ebe2cf" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -1,0 +1,3026 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Home Projects &amp; Groceries — Mechanicus Data-Slate</title>
+  <meta name="description" content="Adeptus Mechanicus themed Home Project and Grocery PWA Data-Slate synced with Google Sheets." />
+  <meta name="theme-color" content="#9e1f1c" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Home List" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+  <link rel="apple-touch-icon" href="./icon-192.png" />
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #110e0d;
+      --bg-glow: radial-gradient(circle at 50% 0%, #241714 0%, #110e0d 62%);
+      --surface: #1a1614;
+      --surface-raised: #221d1a;
+      --surface-subtle: #151210;
+      --border: #3a2f27;
+      --border-strong: #5c4938;
+      --brass: #c99a49;
+      --brass-bright: #e5be73;
+      --brass-dim: #7c5f2f;
+      --brass-soft: rgba(201, 154, 73, 0.14);
+      --crimson: #9e1f1c;
+      --crimson-hover: #b82723;
+      --crimson-bright: #df4d44;
+      --crimson-soft: rgba(184, 39, 35, 0.2);
+      --phosphor: #4eb873;
+      --phosphor-soft: rgba(78, 184, 115, 0.13);
+      --amber: #e2a43b;
+      --amber-soft: rgba(226, 164, 59, 0.16);
+      --ink: #efe6d5;
+      --ink-muted: #aba08e;
+      --ink-faint: #756b5d;
+      --done-ink: #72685b;
+      --radius: 8px;
+      --radius-sm: 6px;
+      --mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --shadow-plate: 0 2px 10px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(201, 154, 73, 0.12);
+    }
+
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      font-size: 15px;
+      line-height: 1.5;
+      color: var(--ink);
+      background: var(--bg-glow), var(--bg);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      padding-bottom: env(safe-area-inset-bottom);
+      color-scheme: dark;
+    }
+
+    /* Top Imperial Hazard Brass Trim */
+    .hazard-trim {
+      height: 5px;
+      width: 100%;
+      background: repeating-linear-gradient(
+        -45deg,
+        #8e6b32 0px,
+        #8e6b32 10px,
+        #181412 10px,
+        #181412 20px
+      );
+      border-bottom: 1px solid #4a3a28;
+    }
+
+    .app-shell {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: calc(18px + env(safe-area-inset-top)) 16px 56px;
+    }
+
+    /* Header Plate */
+    .app-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 18px;
+      padding: 16px 18px;
+      background: linear-gradient(180deg, #211b18 0%, #171311 100%);
+      border: 1px solid var(--border-strong);
+      border-top: 2px solid var(--crimson);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-plate);
+    }
+
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+    }
+
+    .cog-emblem {
+      width: 42px;
+      height: 42px;
+      flex-shrink: 0;
+      filter: drop-shadow(0 0 6px rgba(158, 31, 28, 0.35));
+    }
+
+    .cog-emblem.spinning {
+      animation: cogSpin 4s linear infinite;
+    }
+
+    @keyframes cogSpin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .brand-kicker {
+      font-family: var(--mono);
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--brass);
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      color: var(--ink);
+    }
+
+    .sync-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--ink-muted);
+      letter-spacing: 0.03em;
+    }
+
+    .sync-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--ink-faint);
+      display: inline-block;
+      transition: background 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .sync-dot.ok {
+      background: var(--phosphor);
+      box-shadow: 0 0 8px rgba(78, 184, 115, 0.75);
+    }
+
+    .sync-dot.busy {
+      background: var(--amber);
+      box-shadow: 0 0 8px rgba(226, 164, 59, 0.75);
+      animation: pulse 0.9s infinite;
+    }
+
+    .sync-dot.err {
+      background: var(--crimson-bright);
+      box-shadow: 0 0 8px rgba(223, 77, 68, 0.8);
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* Buttons */
+    button {
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      height: 36px;
+      padding: 0 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-strong);
+      background: linear-gradient(180deg, #27211d 0%, #1c1815 100%);
+      color: var(--ink);
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease, color 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .btn:hover:not(:disabled) {
+      border-color: var(--brass);
+      color: var(--brass-bright);
+      background: linear-gradient(180deg, #302822 0%, #231d19 100%);
+    }
+
+    .btn:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn-sm {
+      height: 30px;
+      padding: 0 9px;
+      font-size: 11px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(180deg, #b12420 0%, #861917 100%);
+      border-color: #cf4a43;
+      color: #f8f1e5;
+      box-shadow: inset 0 1px 0 rgba(255, 220, 190, 0.2);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: linear-gradient(180deg, #c72c27 0%, #991d1a 100%);
+      border-color: var(--brass-bright);
+      color: #ffffff;
+    }
+
+    .btn-danger-soft {
+      background: var(--crimson-soft);
+      border-color: #8f2d28;
+      color: #ff9c94;
+    }
+
+    .btn-danger-soft:hover:not(:disabled) {
+      background: rgba(184, 39, 35, 0.34);
+      border-color: var(--crimson-bright);
+      color: #ffd0cc;
+    }
+
+    .btn-icon {
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--ink-faint);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    }
+
+    .btn-icon:hover {
+      background: var(--surface-raised);
+      color: var(--brass-bright);
+      border-color: var(--border);
+    }
+
+    .btn-icon.danger:hover {
+      background: var(--crimson-soft);
+      color: #ff8e85;
+      border-color: #8a2c27;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* Navigation Tabs */
+    .nav-bar {
+      display: flex;
+      gap: 6px;
+      background: var(--surface-subtle);
+      padding: 5px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      margin-bottom: 18px;
+      overflow-x: auto;
+    }
+
+    .nav-tab {
+      flex: 1;
+      min-width: 112px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border: 1px solid transparent;
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--ink-muted);
+      font-family: var(--mono);
+      font-size: 12.5px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      transition: all 0.15s ease;
+    }
+
+    .nav-tab:hover {
+      color: var(--ink);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .nav-tab.active {
+      background: linear-gradient(180deg, #9e1f1c 0%, #781614 100%);
+      border-color: var(--brass);
+      color: #faf3e6;
+      box-shadow: inset 0 1px 0 rgba(255, 224, 180, 0.22);
+    }
+
+    .tab-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 22px;
+      height: 20px;
+      padding: 0 6px;
+      border-radius: 4px;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      background: var(--surface-raised);
+      border: 1px solid var(--border);
+      color: var(--brass);
+    }
+
+    .nav-tab.active .tab-badge {
+      background: rgba(17, 14, 13, 0.55);
+      border-color: rgba(229, 190, 115, 0.5);
+      color: var(--brass-bright);
+    }
+
+    .nav-tab.active .tab-badge.alert {
+      background: #140b0a;
+      border-color: #ff9185;
+      color: #ff9c94;
+    }
+
+    /* Alert Banner */
+    .banner {
+      display: none;
+      padding: 14px 16px;
+      border-radius: var(--radius);
+      margin-bottom: 16px;
+      font-size: 13.5px;
+      line-height: 1.5;
+      border: 1px solid #9e2d27;
+      background: rgba(158, 31, 28, 0.18);
+      color: #ffd5d0;
+    }
+
+    .banner.show { display: block; }
+    .banner-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    /* Drawers */
+    .drawer-panel {
+      display: none;
+      background: var(--surface);
+      border: 1px solid var(--brass-dim);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 18px;
+      box-shadow: var(--shadow-plate);
+    }
+
+    .drawer-panel.open { display: block; }
+
+    .drawer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .drawer-title {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--brass);
+    }
+
+    .settings-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .settings-row input {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .cat-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .cat-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+
+    .cat-row-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+      min-width: 140px;
+    }
+
+    .cat-row-name {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--ink);
+    }
+
+    .cat-row-count {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--brass);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 1px 7px;
+      border-radius: 4px;
+    }
+
+    .cat-row-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Form Controls */
+    input[type="text"],
+    input[type="password"],
+    input[type="date"],
+    select,
+    textarea {
+      font: inherit;
+      font-size: 14px;
+      color: var(--ink);
+      background: var(--surface-subtle);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      padding: 8px 11px;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+      color: var(--ink-faint);
+    }
+
+    input[type="text"]:focus,
+    input[type="password"]:focus,
+    input[type="date"]:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--brass);
+      box-shadow: 0 0 0 2px rgba(201, 154, 73, 0.22);
+    }
+
+    /* Composer Card */
+    .composer-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--brass-dim);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 18px;
+      box-shadow: var(--shadow-plate);
+    }
+
+    .composer-top {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .composer-top input[type="text"] {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .composer-fields {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .field-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--brass);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .modifier-selector {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 2px;
+    }
+
+    .mod-toggle {
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 10px;
+      border-radius: 4px;
+      border: 1px solid var(--border-strong);
+      background: var(--surface-subtle);
+      color: var(--ink-muted);
+      font-family: var(--mono);
+      font-size: 11.5px;
+      font-weight: 600;
+      user-select: none;
+      transition: all 0.15s ease;
+    }
+
+    .mod-toggle.selected {
+      background: var(--phosphor-soft);
+      border-color: var(--phosphor);
+      color: #9be8b4;
+    }
+
+    /* Filter Bar */
+    .filter-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: var(--shadow-plate);
+    }
+
+    .filter-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .filter-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: var(--brass);
+      min-width: 82px;
+    }
+
+    .pill-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .pill {
+      padding: 5px 11px;
+      border-radius: 4px;
+      border: 1px solid var(--border-strong);
+      background: var(--surface-subtle);
+      color: var(--ink-muted);
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 600;
+      transition: all 0.15s ease;
+    }
+
+    .pill:hover {
+      border-color: var(--brass);
+      color: var(--ink);
+    }
+
+    .pill.active {
+      background: var(--crimson);
+      border-color: var(--brass);
+      color: #fff6ea;
+    }
+
+    .pill.mod-active {
+      background: var(--phosphor-soft);
+      border-color: var(--phosphor);
+      color: #a6efc0;
+    }
+
+    .pill-manage {
+      border-style: dashed;
+      color: var(--brass-bright);
+      border-color: var(--brass-dim);
+      background: var(--brass-soft);
+    }
+
+    .pill-manage:hover {
+      border-color: var(--brass-bright);
+      background: rgba(201, 154, 73, 0.22);
+    }
+
+    /* Toolbar */
+    .view-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .view-heading {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+    }
+
+    .view-heading h2 {
+      margin: 0;
+      font-family: var(--mono);
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--brass-bright);
+    }
+
+    .view-count {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--ink-muted);
+    }
+
+    /* Project Cards */
+    .list-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .task-card {
+      background: linear-gradient(180deg, #1d1816 0%, #171311 100%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      box-shadow: var(--shadow-plate);
+      transition: border-color 0.15s ease, opacity 0.2s ease;
+    }
+
+    .task-card:hover {
+      border-color: var(--border-strong);
+    }
+
+    .task-card.is-done {
+      opacity: 0.56;
+      background: #141110;
+    }
+
+    .task-main {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .check-btn {
+      flex-shrink: 0;
+      width: 24px;
+      height: 24px;
+      margin-top: 1px;
+      border-radius: 5px;
+      border: 2px solid var(--brass-dim);
+      background: var(--surface-subtle);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: transparent;
+      padding: 0;
+      transition: all 0.15s ease;
+    }
+
+    .check-btn:hover {
+      border-color: var(--brass-bright);
+    }
+
+    .check-btn.checked {
+      background: #2f7c4c;
+      border-color: var(--phosphor);
+      color: #f0fff4;
+      box-shadow: 0 0 8px rgba(78, 184, 115, 0.35);
+    }
+
+    .task-body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .task-title-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .task-title {
+      font-size: 15.5px;
+      font-weight: 600;
+      color: var(--ink);
+      word-break: break-word;
+    }
+
+    .task-card.is-done .task-title {
+      text-decoration: line-through;
+      color: var(--done-ink);
+    }
+
+    .task-meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 9px;
+      border-radius: 4px;
+      font-family: var(--mono);
+      font-size: 11.5px;
+      font-weight: 600;
+      line-height: 1.3;
+    }
+
+    .badge-cat {
+      background: var(--brass-soft);
+      color: var(--brass-bright);
+      border: 1px solid var(--brass-dim);
+      cursor: pointer;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+
+    .badge-cat:hover {
+      border-color: var(--brass-bright);
+      background: rgba(201, 154, 73, 0.24);
+    }
+
+    .badge-mod {
+      background: var(--phosphor-soft);
+      color: #93dca9;
+      border: 1px solid #2d5c40;
+      font-weight: 500;
+      cursor: pointer;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+
+    .badge-mod:hover {
+      border-color: var(--phosphor);
+      background: rgba(78, 184, 115, 0.24);
+    }
+
+    .mod-editor {
+      margin-top: 9px;
+      padding: 10px 11px;
+      border-radius: var(--radius-sm);
+      background: var(--surface-subtle);
+      border: 1px solid var(--border-strong);
+      border-left: 2px solid var(--phosphor);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .mod-editor-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .mod-editor-label {
+      font-family: var(--mono);
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--phosphor);
+    }
+
+    .mod-editor-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .mod-editor-custom {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .mod-editor-custom input {
+      flex: 1;
+      min-width: 130px;
+      height: 30px;
+      padding: 3px 9px;
+      font-size: 12.5px;
+    }
+
+    .inline-select {
+      height: 28px;
+      padding: 2px 8px !important;
+      font-family: var(--mono) !important;
+      font-size: 12px !important;
+      border-radius: 4px !important;
+    }
+
+    .date-badge-wrap {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .badge-date {
+      border: 1px solid var(--border-strong);
+      background: var(--surface-subtle);
+      color: var(--ink-muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .badge-date:hover {
+      border-color: var(--brass);
+      color: var(--brass-bright);
+    }
+
+    .badge-date.overdue {
+      background: var(--crimson-soft);
+      border-color: #a8332c;
+      color: #ff9c94;
+    }
+
+    .badge-date.due-today {
+      background: var(--amber-soft);
+      border-color: #9c7025;
+      color: #f6c976;
+    }
+
+    .inline-date-input {
+      height: 28px;
+      padding: 2px 8px !important;
+      font-family: var(--mono) !important;
+      font-size: 12px !important;
+      border-radius: 4px !important;
+    }
+
+    .notes-toggle {
+      border: none;
+      background: transparent;
+      color: var(--ink-muted);
+      font-family: var(--mono);
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 3px 6px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .notes-toggle:hover {
+      background: var(--surface-raised);
+      color: var(--brass-bright);
+    }
+
+    .notes-preview {
+      margin-top: 8px;
+      padding: 9px 11px;
+      border-radius: var(--radius-sm);
+      background: var(--surface-subtle);
+      color: var(--ink-muted);
+      font-size: 13.5px;
+      white-space: pre-wrap;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      border-left: 2px solid var(--brass-dim);
+    }
+
+    .notes-preview:hover {
+      border-color: var(--border-strong);
+      color: var(--ink);
+    }
+
+    .notes-editor {
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .notes-editor textarea {
+      width: 100%;
+      min-height: 78px;
+      resize: vertical;
+    }
+
+    .notes-editor-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    /* Grocery Department Groups */
+    .dept-group {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 14px;
+      box-shadow: var(--shadow-plate);
+    }
+
+    .dept-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 16px;
+      background: linear-gradient(180deg, #241d19 0%, #1b1614 100%);
+      border-bottom: 1px solid var(--border-strong);
+    }
+
+    .dept-title {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--brass-bright);
+    }
+
+    .dept-count {
+      font-family: var(--mono);
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--ink-muted);
+    }
+
+    .grocery-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s ease;
+    }
+
+    .grocery-row:last-child { border-bottom: none; }
+    .grocery-row:hover { background: rgba(201, 154, 73, 0.04); }
+
+    .grocery-row.is-checked {
+      background: #141110;
+      opacity: 0.56;
+    }
+
+    .grocery-name {
+      flex: 1;
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--ink);
+    }
+
+    .grocery-row.is-checked .grocery-name {
+      text-decoration: line-through;
+      color: var(--done-ink);
+    }
+
+    .grocery-qty {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--brass-bright);
+      background: var(--brass-soft);
+      border: 1px solid var(--brass-dim);
+      padding: 2px 9px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      background: var(--surface);
+      border: 1px dashed var(--border-strong);
+      border-radius: var(--radius);
+      color: var(--ink-muted);
+    }
+
+    .empty-state h3 {
+      margin: 0 0 6px;
+      font-family: var(--mono);
+      font-size: 0.95rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--brass-bright);
+    }
+
+    .empty-state p {
+      margin: 0;
+      font-size: 13.5px;
+    }
+
+    /* Mechanicus Footer Seal */
+    .slate-footer {
+      margin-top: 32px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      color: var(--ink-faint);
+      text-transform: uppercase;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: calc(20px + env(safe-area-inset-bottom));
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #231c18;
+      color: var(--brass-bright);
+      border: 1px solid var(--brass);
+      padding: 9px 16px;
+      border-radius: 6px;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.55);
+      z-index: 100;
+      max-width: 90vw;
+      text-align: center;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .print-header,
+    .print-checkbox,
+    .print-notes {
+      display: none;
+    }
+
+    @media (max-width: 600px) {
+      .app-shell {
+        padding: calc(14px + env(safe-area-inset-top)) 12px 48px;
+      }
+      .app-header { padding: 13px 14px; }
+      .brand h1 { font-size: 1.15rem; }
+      .nav-tab { padding: 9px 8px; font-size: 11.5px; }
+      .header-actions { width: 100%; }
+      .header-actions .btn { flex: 1; }
+    }
+
+    /* ========================================
+       PRINT MODE — Pure Black & White Checklist
+       ======================================== */
+    @media print {
+      * {
+        background: transparent !important;
+        color: #000000 !important;
+        box-shadow: none !important;
+        text-shadow: none !important;
+      }
+
+      body {
+        background: #ffffff !important;
+        font-size: 11.5pt;
+        line-height: 1.4;
+        color-scheme: light;
+      }
+
+      .app-shell {
+        max-width: 100%;
+        padding: 0;
+        margin: 0;
+      }
+
+      .hazard-trim,
+      .no-print,
+      .app-header,
+      .nav-bar,
+      .banner,
+      .drawer-panel,
+      .composer-card,
+      .filter-panel,
+      .view-toolbar,
+      .check-btn,
+      .btn-icon,
+      .notes-toggle,
+      .notes-editor,
+      .notes-preview,
+      .slate-footer,
+      .toast,
+      .inline-date-input,
+      .inline-select {
+        display: none !important;
+      }
+
+      .print-header {
+        display: flex !important;
+        justify-content: space-between;
+        align-items: baseline;
+        border-bottom: 2px solid #000000;
+        padding-bottom: 8px;
+        margin-bottom: 14px;
+      }
+
+      .print-header h1 {
+        margin: 0;
+        font-family: var(--mono);
+        font-size: 15pt;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      .print-header .print-meta {
+        font-family: var(--mono);
+        font-size: 9pt;
+      }
+
+      .list-stack { gap: 0; }
+
+      .task-card {
+        border: none;
+        border-bottom: 1px solid #cccccc;
+        border-radius: 0;
+        padding: 8px 2px;
+        opacity: 1 !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      .task-main { align-items: flex-start; gap: 10px; }
+
+      .print-checkbox {
+        display: inline-block !important;
+        font-size: 14pt;
+        line-height: 1.1;
+        width: 18px;
+        flex-shrink: 0;
+      }
+
+      .task-title { font-size: 11.5pt; font-weight: 600; }
+      .task-meta { margin-top: 3px; gap: 6px; }
+
+      .badge {
+        border: 1px solid #666666 !important;
+        padding: 1px 6px;
+        font-size: 8.5pt;
+        border-radius: 3px;
+      }
+
+      .print-notes {
+        display: block !important;
+        margin-top: 4px;
+        font-size: 9.5pt;
+        font-style: italic;
+        padding-left: 2px;
+      }
+
+      .dept-group {
+        border: none;
+        border-radius: 0;
+        margin-bottom: 14px;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      .dept-header {
+        border-bottom: 1.5px solid #000000;
+        padding: 4px 2px;
+      }
+
+      .dept-title { font-size: 10.5pt; }
+
+      .grocery-row {
+        padding: 6px 2px;
+        border-bottom: 1px solid #dddddd;
+        opacity: 1 !important;
+        break-inside: avoid;
+      }
+
+      .grocery-qty {
+        border: 1px solid #666666 !important;
+        padding: 1px 6px;
+        font-size: 9pt;
+      }
+
+      .lock-screen {
+        display: none !important;
+      }
+    }
+
+    /* ========================================
+       LOCK SCREEN MODAL — Security Seal
+       ======================================== */
+    .lock-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px 16px;
+      background: radial-gradient(circle at 50% 22%, #291815 0%, #110e0d 68%);
+    }
+
+    .lock-card {
+      width: 100%;
+      max-width: 410px;
+      background: linear-gradient(180deg, #211b18 0%, #171311 100%);
+      border: 1px solid var(--border-strong);
+      border-top: 3px solid var(--crimson);
+      border-radius: var(--radius);
+      padding: 26px 24px 22px;
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(201, 154, 73, 0.16);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .lock-head {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 8px;
+    }
+
+    .lock-emblem {
+      width: 56px;
+      height: 56px;
+      filter: drop-shadow(0 0 10px rgba(158, 31, 28, 0.45));
+    }
+
+    .lock-title {
+      margin: 0;
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .lock-sub {
+      margin: 0;
+      font-size: 13px;
+      color: var(--ink-muted);
+    }
+
+    .lock-form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .lock-input-wrap {
+      display: flex;
+      gap: 6px;
+    }
+
+    .lock-input-wrap input {
+      flex: 1;
+      height: 42px;
+      font-family: var(--mono);
+      letter-spacing: 0.06em;
+    }
+
+    .lock-error {
+      display: none;
+      padding: 9px 11px;
+      border-radius: var(--radius-sm);
+      border: 1px solid #a8332c;
+      background: var(--crimson-soft);
+      color: #ffb4ad;
+      font-family: var(--mono);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .lock-error.show {
+      display: block;
+    }
+
+    .lock-vox-details {
+      border-top: 1px solid var(--border);
+      padding-top: 10px;
+      font-size: 12px;
+      color: var(--ink-muted);
+    }
+
+    .lock-vox-details summary {
+      cursor: pointer;
+      font-family: var(--mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-faint);
+      user-select: none;
+    }
+
+    .lock-vox-details summary:hover {
+      color: var(--brass);
+    }
+
+    .lock-vox-body {
+      margin-top: 8px;
+      display: flex;
+      gap: 6px;
+    }
+
+    .lock-vox-body input {
+      flex: 1;
+      min-width: 0;
+      font-size: 12px;
+      padding: 6px 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="hazard-trim" aria-hidden="true"></div>
+
+  <!-- Full-Screen Passcode Lock Screen -->
+  <div class="lock-screen" id="lockScreen" role="dialog" aria-modal="true" aria-labelledby="lockTitle">
+    <div class="lock-card">
+      <div class="lock-head">
+        <svg class="lock-emblem" id="lockCogEmblem" viewBox="0 0 100 100" aria-hidden="true">
+          <g fill="#9e1f1c" stroke="#c99a49" stroke-width="2.2" stroke-linejoin="round" transform="translate(50,50)">
+            <rect x="-5.5" y="-44" width="11" height="12" rx="1.5"/>
+            <rect x="-5.5" y="-44" width="11" height="12" rx="1.5" transform="rotate(30)"/>
+            <rect x="-5.5" y="-44" width="11" height="12" rx="1.5" transform="rotate(60)"/>
+            <rect x="-5.5" y="-44" width="11" height="12" rx="1.5" transform="rotate(90)"/>
+            <rect x="-5.5" y="-44" width="11" height="12" rx="1.5" transform="rotate(120)"/>
+            <rect x="-5.5" y="-44" width="11" height="12" rx="1.5" transform="rotate(150)"/>
+            <rect x="-5.5" y="-44" width="11" height="12" rx="1.5" transform="rotate(180)"/>
+            <rect x="-5.5" y="-44" width="11" height="12" rx="1.5" transform="rotate(210)"/>
+            <rect x="-5.5" y="-44" width="11" height="12" rx="1.5" transform="rotate(240)"/>
+            <rect x="-5.5" y="-44" width="11" height="12" rx="1.5" transform="rotate(270)"/>
+            <rect x="-5.5" y="-44" width="11" height="12" rx="1.5" transform="rotate(300)"/>
+            <rect x="-5.5" y="-44" width="11" height="12" rx="1.5" transform="rotate(330)"/>
+            <circle r="33" fill="#9e1f1c" stroke="#c99a49" stroke-width="2.6"/>
+            <circle r="21" fill="#141110" stroke="#c99a49" stroke-width="2"/>
+            <path d="M-9 -6 a9 9 0 0 1 18 0 v6 c0 3-2 5-4 6 v4 h-10 v-4 c-2-1-4-3-4-6 z" fill="#ebe2cf" stroke="none"/>
+            <path d="M0 -15 a9 9 0 0 1 9 9 v6 c0 3-2 5-4 6 v4 h-5 z" fill="#8b7d6b" stroke="none"/>
+            <circle cx="-4" cy="-3" r="2.2" fill="#141110" stroke="none"/>
+            <circle cx="4" cy="-3" r="2.2" fill="#9e1f1c" stroke="none"/>
+            <rect x="-3" y="6" width="1.5" height="4" fill="#141110" stroke="none"/>
+            <rect x="0" y="6" width="1.5" height="4" fill="#141110" stroke="none"/>
+            <rect x="3" y="6" width="1.5" height="4" fill="#141110" stroke="none"/>
+          </g>
+        </svg>
+        <div class="brand-kicker">Security Seal Engaged // Data-Slate Mk.IV</div>
+        <h2 class="lock-title" id="lockTitle">Home Projects &amp; Groceries</h2>
+        <p class="lock-sub" id="lockSub">Enter your shared household passcode to unlock the cogitator.</p>
+      </div>
+
+      <form class="lock-form" id="lockForm">
+        <div class="lock-input-wrap">
+          <input type="password" id="passcodeInput" placeholder="Enter passcode…" autocomplete="current-password" required />
+          <button type="button" class="btn" id="togglePassVisBtn" style="height:42px;" title="Show or hide passcode">Show</button>
+        </div>
+        <div class="lock-error" id="lockError" role="alert"></div>
+        <button type="submit" class="btn btn-primary" id="unlockBtn" style="height:42px; width:100%;">
+          Unlock Data-Slate
+        </button>
+      </form>
+
+      <details class="lock-vox-details">
+        <summary>Configure Vox-Link API URL</summary>
+        <div class="lock-vox-body">
+          <input type="text" id="lockApiUrlInput" placeholder="https://script.google.com/macros/s/.../exec" />
+          <button type="button" class="btn btn-sm" id="lockSaveApiUrlBtn">Save</button>
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <main class="app-shell hidden" id="appShell">
+    <!-- Print-only Header -->
+    <div class="print-header" id="printHeader">
+      <h1 id="printTitle">Home Projects &amp; Groceries</h1>
+      <div class="print-meta" id="printMeta"></div>
+    </div>
+
+    <!-- Screen Header -->
+    <header class="app-header">
+      <div class="brand-wrap">
+        <svg class="cog-emblem" id="cogEmblem" viewBox="0 0 100 100" aria-hidden="true">
+          <g fill="#9e1f1c" stroke="#c99a49" stroke-width="2.2" stroke-linejoin="round" transform="translate(50,50)">
+            <rect x="-5.5" y="-44" width="11" height="12" rx="1.5"/>
+            <rect x="-5.5" y="-44" width="11" height="12" rx="1.5" transform="rotate(30)"/>
+            <rect x="-5.5" y="-44" width="11" height="12" rx="1.5" transform="rotate(60)"/>
+            <rect x="-5.5" y="-44" width="11" height="12" rx="1.5" transform="rotate(90)"/>
+            <rect x="-5.5" y="-44" width="11" height="12" rx="1.5" transform="rotate(120)"/>
+            <rect x="-5.5" y="-44" width="11" height="12" rx="1.5" transform="rotate(150)"/>
+            <rect x="-5.5" y="-44" width="11" height="12" rx="1.5" transform="rotate(180)"/>
+            <rect x="-5.5" y="-44" width="11" height="12" rx="1.5" transform="rotate(210)"/>
+            <rect x="-5.5" y="-44" width="11" height="12" rx="1.5" transform="rotate(240)"/>
+            <rect x="-5.5" y="-44" width="11" height="12" rx="1.5" transform="rotate(270)"/>
+            <rect x="-5.5" y="-44" width="11" height="12" rx="1.5" transform="rotate(300)"/>
+            <rect x="-5.5" y="-44" width="11" height="12" rx="1.5" transform="rotate(330)"/>
+            <circle r="33" fill="#9e1f1c" stroke="#c99a49" stroke-width="2.6"/>
+            <circle r="21" fill="#141110" stroke="#c99a49" stroke-width="2"/>
+            <!-- Geometric Opus Machina split skull-cog motif -->
+            <path d="M-9 -6 a9 9 0 0 1 18 0 v6 c0 3-2 5-4 6 v4 h-10 v-4 c-2-1-4-3-4-6 z" fill="#ebe2cf" stroke="none"/>
+            <path d="M0 -15 a9 9 0 0 1 9 9 v6 c0 3-2 5-4 6 v4 h-5 z" fill="#8b7d6b" stroke="none"/>
+            <circle cx="-4" cy="-3" r="2.2" fill="#141110" stroke="none"/>
+            <circle cx="4" cy="-3" r="2.2" fill="#9e1f1c" stroke="none"/>
+            <rect x="-3" y="6" width="1.5" height="4" fill="#141110" stroke="none"/>
+            <rect x="0" y="6" width="1.5" height="4" fill="#141110" stroke="none"/>
+            <rect x="3" y="6" width="1.5" height="4" fill="#141110" stroke="none"/>
+          </g>
+        </svg>
+
+        <div class="brand">
+          <div class="brand-kicker">Adeptus Mechanicus // Data-Slate Mk.IV</div>
+          <h1>Home Projects &amp; Groceries</h1>
+          <div class="sync-meta">
+            <span class="sync-dot" id="syncDot"></span>
+            <span id="syncText">Communing with Machine Spirit…</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button type="button" class="btn btn-primary hidden" id="installAppBtn" title="Install on Home Screen">
+          + Install
+        </button>
+        <button type="button" class="btn" id="refreshBtn" title="Sync from Google Sheets">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          Sync
+        </button>
+        <button type="button" class="btn" id="categoriesBtn" title="Add or rename project categories">
+          Categories
+        </button>
+        <button type="button" class="btn" id="printBtn" title="Print clean black-and-white checklist">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Print
+        </button>
+        <button type="button" class="btn" id="settingsBtn" title="Configure Apps Script Endpoint">
+          Vox-Link
+        </button>
+        <button type="button" class="btn btn-danger-soft" id="logoutBtn" title="Lock dashboard and clear saved passcode">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Lock
+        </button>
+      </div>
+    </header>
+
+    <!-- API Settings Drawer -->
+    <section class="drawer-panel" id="settingsPanel">
+      <div class="drawer-header">
+        <span class="drawer-title">Noosphere Vox-Link // Apps Script URL</span>
+        <button type="button" class="notes-toggle" id="closeSettingsBtn">Close</button>
+      </div>
+      <div class="settings-row">
+        <input type="text" id="apiUrlInput" placeholder="https://script.google.com/macros/s/.../exec" />
+        <button type="button" class="btn btn-primary" id="saveApiUrlBtn">Bind &amp; Sync</button>
+      </div>
+    </section>
+
+    <!-- Category Manager Drawer -->
+    <section class="drawer-panel" id="categoryPanel">
+      <div class="drawer-header">
+        <span class="drawer-title">Manage Project Categories</span>
+        <button type="button" class="notes-toggle" id="closeCategoriesBtn">Done</button>
+      </div>
+      <form class="settings-row" id="addCategoryForm">
+        <input type="text" id="newCategoryInput" placeholder="New category (e.g. Garage, Plumbing, Garden)…" required autocomplete="off" />
+        <button type="submit" class="btn btn-primary">+ Add Category</button>
+      </form>
+      <div class="cat-list" id="categoryManagerList"></div>
+    </section>
+
+    <!-- Connection Banner -->
+    <div class="banner" id="errorBanner" role="alert"></div>
+
+    <!-- Top Navigation Tabs -->
+    <nav class="nav-bar" aria-label="Dashboard views">
+      <button type="button" class="nav-tab active" data-tab="today" id="tabToday">
+        Today <span class="tab-badge" id="badgeToday">0</span>
+      </button>
+      <button type="button" class="nav-tab" data-tab="projects" id="tabProjects">
+        All Projects <span class="tab-badge" id="badgeProjects">0</span>
+      </button>
+      <button type="button" class="nav-tab" data-tab="groceries" id="tabGroceries">
+        Grocery List <span class="tab-badge" id="badgeGroceries">0</span>
+      </button>
+    </nav>
+
+    <!-- Dynamic Main Content Area -->
+    <section id="viewContainer"></section>
+
+    <footer class="slate-footer">
+      ++ Praise the Omnissiah // Shared Forge-Home Data-Slate ++
+    </footer>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    (() => {
+      const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbzuP1C0KIOo7NvJPXHIKj6CvnY0VJHjy6toimcaSC5S8o9owq9J86qCYepAVUnZ72D-/exec';
+      const STORAGE_URL_KEY = 'home_dashboard_api_url';
+      const STORAGE_CATS_KEY = 'home_dashboard_categories';
+      const STORAGE_PASSCODE_KEY = 'home_dashboard_passcode';
+      const DEFAULT_CATEGORIES = ['Yard', 'Interior', 'Maintenance', 'Errands'];
+      const DEFAULT_MODIFIERS = ['DIY', 'Quick', 'Needs-Parts'];
+      const DEFAULT_DEPARTMENTS = ['Produce', 'Bakery', 'Dairy', 'Meat & Seafood', 'Pantry', 'Frozen', 'Household', 'Other'];
+
+      function loadStoredCategories() {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(STORAGE_CATS_KEY) || 'null');
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        } catch (_) {}
+        return DEFAULT_CATEGORIES.slice();
+      }
+
+      function saveStoredCategories(list) {
+        try {
+          localStorage.setItem(STORAGE_CATS_KEY, JSON.stringify(list));
+        } catch (_) {}
+      }
+
+      function loadStoredPasscode() {
+        try {
+          return localStorage.getItem(STORAGE_PASSCODE_KEY) || '';
+        } catch (_) {
+          return '';
+        }
+      }
+
+      function saveStoredPasscode(code) {
+        try {
+          localStorage.setItem(STORAGE_PASSCODE_KEY, code);
+        } catch (_) {}
+      }
+
+      function clearStoredPasscode() {
+        try {
+          localStorage.removeItem(STORAGE_PASSCODE_KEY);
+        } catch (_) {}
+      }
+
+      const state = {
+        apiUrl: localStorage.getItem(STORAGE_URL_KEY) || DEFAULT_API_URL,
+        passcode: loadStoredPasscode(),
+        unlocked: false,
+        activeTab: 'today',
+        projects: [],
+        groceries: [],
+        categories: loadStoredCategories(),
+        backendSupportsCategories: false,
+        loading: true,
+        categoryFilter: 'All',
+        modifierFilters: new Set(),
+        showDoneProjects: true,
+        expandedNotes: new Set(),
+        editingNotes: new Set(),
+        editingDateId: null,
+        editingCategoryId: null,
+        editingModifiersId: null,
+        renamingCategoryName: null,
+        composerModifiers: new Set(),
+        deferredInstallPrompt: null
+      };
+
+      const $ = (id) => document.getElementById(id);
+
+      function buildGetUrl(baseUrl, passcode) {
+        const url = new URL(baseUrl);
+        url.searchParams.set('passcode', passcode || '');
+        return url.toString();
+      }
+
+      function isUnauthorizedResponse(data) {
+        if (!data || typeof data !== 'object') return false;
+        const msg = String(data.message || data.error || '').trim().toLowerCase();
+        return msg === 'unauthorized' || (data.status === 'error' && msg.includes('unauthorized'));
+      }
+
+      function setLockError(msg) {
+        const el = $('lockError');
+        if (!el) return;
+        if (!msg) {
+          el.classList.remove('show');
+          el.textContent = '';
+        } else {
+          el.textContent = msg;
+          el.classList.add('show');
+        }
+      }
+
+      function setLockBusy(busy, subtitle) {
+        const btn = $('unlockBtn');
+        const input = $('passcodeInput');
+        const cog = $('lockCogEmblem');
+        if (btn) {
+          btn.disabled = busy;
+          btn.textContent = busy ? 'Verifying Passcode…' : 'Unlock Data-Slate';
+        }
+        if (input) input.disabled = busy;
+        if (cog) cog.classList.toggle('spinning', busy);
+        if (subtitle && $('lockSub')) $('lockSub').textContent = subtitle;
+      }
+
+      function lockDashboard(errorMsg = '') {
+        clearStoredPasscode();
+        state.passcode = '';
+        state.unlocked = false;
+        state.loading = false;
+        state.projects = [];
+        state.groceries = [];
+        $('appShell').classList.add('hidden');
+        $('lockScreen').classList.remove('hidden');
+        $('lockApiUrlInput').value = state.apiUrl;
+        setLockBusy(false, 'Enter your shared household passcode to unlock the cogitator.');
+        setLockError(errorMsg);
+        const inp = $('passcodeInput');
+        if (inp) {
+          inp.value = '';
+          setTimeout(() => inp.focus(), 30);
+        }
+      }
+
+      function unlockDashboard(validPasscode, data) {
+        state.passcode = validPasscode;
+        state.unlocked = true;
+        state.loading = false;
+        saveStoredPasscode(validPasscode);
+        applyServerPayload(data);
+        setLockError('');
+        setLockBusy(false);
+        $('lockScreen').classList.add('hidden');
+        $('appShell').classList.remove('hidden');
+        showBanner('');
+        const timeStr = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        setSyncStatus('ok', `Noosphere Synced · ${timeStr}`);
+        render();
+      }
+
+      async function attemptUnlock(candidatePasscode, isAutoVerify = false) {
+        const code = String(candidatePasscode || '');
+        if (!code) {
+          lockDashboard('');
+          return;
+        }
+
+        setLockError('');
+        setLockBusy(true, isAutoVerify ? 'Verifying saved access cipher…' : 'Testing passcode against Google Sheets…');
+
+        try {
+          const resp = await fetch(buildGetUrl(state.apiUrl, code), { method: 'GET', redirect: 'follow' });
+          const text = await resp.text();
+          let data;
+          try {
+            data = JSON.parse(text);
+          } catch {
+            throw new Error(text.includes('Script function not found: doGet') ? 'Apps Script missing doGet. Redeploy a new version.' : 'Unexpected non-JSON response from Apps Script.');
+          }
+
+          if (isUnauthorizedResponse(data)) {
+            lockDashboard(isAutoVerify ? 'Saved passcode is no longer valid. Please enter the current passcode.' : 'Incorrect passcode');
+            return;
+          }
+
+          if (!data.ok) {
+            throw new Error(data.message || data.error || 'Cogitator returned an error.');
+          }
+
+          unlockDashboard(code, data);
+        } catch (err) {
+          setLockBusy(false, 'Enter your shared household passcode to unlock the cogitator.');
+          setLockError(err.message || 'Could not reach Apps Script.');
+          if (isAutoVerify) {
+            $('appShell').classList.add('hidden');
+            $('lockScreen').classList.remove('hidden');
+          }
+        }
+      }
+
+      function getTodayISO() {
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      }
+
+      function normalizeDate(raw) {
+        const str = String(raw || '').trim();
+        if (!str) return '';
+        if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+        const parsed = new Date(str);
+        if (isNaN(parsed.getTime())) return str;
+        if (parsed.getUTCHours() === 0 && parsed.getUTCMinutes() === 0 && parsed.getUTCSeconds() === 0) {
+          return parsed.toISOString().slice(0, 10);
+        }
+        return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}-${String(parsed.getDate()).padStart(2, '0')}`;
+      }
+
+      function normalizeProject(p) {
+        return { ...p, dueDate: normalizeDate(p.dueDate) };
+      }
+
+      function mergeCategories(baseList, projects) {
+        const seen = new Set();
+        const merged = [];
+        const add = (c) => {
+          const clean = String(c || '').trim();
+          if (clean && !seen.has(clean.toLowerCase())) {
+            seen.add(clean.toLowerCase());
+            merged.push(clean);
+          }
+        };
+        (baseList || []).forEach(add);
+        (projects || []).forEach((p) => add(p.category));
+        if (merged.length === 0) DEFAULT_CATEGORIES.forEach(add);
+        return merged;
+      }
+
+      function formatDisplayDate(iso) {
+        if (!iso) return 'No due date';
+        const parts = iso.split('-').map(Number);
+        if (parts.length !== 3 || parts.some(isNaN)) return iso;
+        const dt = new Date(parts[0], parts[1] - 1, parts[2]);
+        const todayIso = getTodayISO();
+        const label = dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        if (iso === todayIso) return `Today · ${label}`;
+        if (iso < todayIso) return `Overdue · ${label}`;
+        return dt.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+      }
+
+      function parseModifiers(str) {
+        return String(str || '').split(',').map((s) => s.trim()).filter(Boolean);
+      }
+
+      function escapeHtml(str) {
+        return String(str ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      let toastTimer = null;
+      function showToast(msg) {
+        const el = $('toast');
+        el.textContent = msg;
+        el.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+      }
+
+      function setSyncStatus(mode, text) {
+        $('syncDot').className = 'sync-dot ' + mode;
+        $('syncText').textContent = text;
+        const cog = $('cogEmblem');
+        if (cog) cog.classList.toggle('spinning', mode === 'busy');
+      }
+
+      function showBanner(html) {
+        const el = $('errorBanner');
+        if (!html) {
+          el.classList.remove('show');
+          el.innerHTML = '';
+        } else {
+          el.innerHTML = html;
+          el.classList.add('show');
+        }
+      }
+
+      function applyServerPayload(data) {
+        if (Array.isArray(data.projects)) {
+          state.projects = data.projects.map(normalizeProject);
+        }
+        if (Array.isArray(data.groceries)) {
+          state.groceries = data.groceries;
+        }
+        if (Array.isArray(data.categories)) {
+          state.backendSupportsCategories = true;
+          state.categories = mergeCategories(data.categories, state.projects);
+        } else {
+          state.categories = mergeCategories(state.categories, state.projects);
+        }
+        saveStoredCategories(state.categories);
+      }
+
+      async function fetchAllData(silent = false) {
+        if (!state.passcode) {
+          lockDashboard('');
+          return;
+        }
+
+        if (!silent) {
+          state.loading = true;
+          setSyncStatus('busy', 'Communing with Machine Spirit…');
+          render();
+        } else {
+          setSyncStatus('busy', 'Refreshing Noosphere…');
+        }
+
+        try {
+          const resp = await fetch(buildGetUrl(state.apiUrl, state.passcode), { method: 'GET', redirect: 'follow' });
+          const text = await resp.text();
+          let data;
+          try {
+            data = JSON.parse(text);
+          } catch {
+            throw new Error(text.includes('Script function not found: doGet') ? 'MISSING_DOGET' : 'NON_JSON');
+          }
+
+          if (isUnauthorizedResponse(data)) {
+            lockDashboard('Session locked: Unauthorized — please enter the passcode.');
+            return;
+          }
+
+          if (!data.ok) throw new Error(data.message || data.error || 'Cogitator returned an error.');
+
+          applyServerPayload(data);
+          state.loading = false;
+          showBanner('');
+          const timeStr = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+          setSyncStatus('ok', `Noosphere Synced · ${timeStr}`);
+          render();
+        } catch (err) {
+          state.loading = false;
+          setSyncStatus('err', 'Vox-Link Interrupted');
+          if (!silent) {
+            showBanner(`
+              <strong>Vox-Link Disruption:</strong> ${escapeHtml(err.message === 'NON_JSON' ? 'Unexpected non-JSON response (verify "Who has access" is set to Anyone).' : err.message)}
+              <div class="banner-actions">
+                <button type="button" class="btn btn-primary" id="bannerRetryBtn">Retry Rite of Sync</button>
+              </div>
+            `);
+            const retryBtn = $('bannerRetryBtn');
+            if (retryBtn) retryBtn.addEventListener('click', () => fetchAllData(false));
+          }
+          render();
+        }
+      }
+
+      async function postRaw(payload) {
+        if (!state.passcode) {
+          lockDashboard('Session locked — please enter passcode.');
+          throw new Error('Unauthorized');
+        }
+
+        const resp = await fetch(state.apiUrl, {
+          method: 'POST',
+          redirect: 'follow',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ ...payload, passcode: state.passcode })
+        });
+        const text = await resp.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          throw new Error('Server did not return JSON.');
+        }
+
+        if (isUnauthorizedResponse(data)) {
+          lockDashboard('Session locked: Unauthorized — please enter the passcode.');
+          throw new Error('Unauthorized');
+        }
+
+        if (!data.ok) throw new Error(data.message || data.error || 'Update failed.');
+        return data;
+      }
+
+      async function postAction(payload, optimisticFn, successMsg) {
+        const snapshotProjects = structuredClone(state.projects);
+        const snapshotGroceries = structuredClone(state.groceries);
+        const snapshotCategories = structuredClone(state.categories);
+
+        if (optimisticFn) {
+          optimisticFn();
+          render();
+        }
+
+        setSyncStatus('busy', 'Inscribing to Cogitator…');
+        try {
+          const data = await postRaw(payload);
+          applyServerPayload(data);
+          const timeStr = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+          setSyncStatus('ok', `Noosphere Synced · ${timeStr}`);
+          if (successMsg) showToast(successMsg);
+          render();
+          return true;
+        } catch (err) {
+          if (err.message === 'Unauthorized') return false;
+          state.projects = snapshotProjects;
+          state.groceries = snapshotGroceries;
+          state.categories = snapshotCategories;
+          saveStoredCategories(state.categories);
+          setSyncStatus('err', 'Inscription Failed');
+          showToast('Error: ' + err.message);
+          render();
+          return false;
+        }
+      }
+
+      /* ===========================
+       * Category Management Actions
+       * =========================== */
+      async function handleAddCategory(name) {
+        const clean = name.trim();
+        if (!clean) return;
+        if (state.categories.some((c) => c.toLowerCase() === clean.toLowerCase())) {
+          showToast(`"${clean}" already logged`);
+          return;
+        }
+
+        state.categories = [...state.categories, clean];
+        saveStoredCategories(state.categories);
+        render();
+
+        if (state.backendSupportsCategories) {
+          await postAction({ action: 'addCategory', name: clean }, null, `Category logged: ${clean}`);
+        } else {
+          try {
+            const data = await postRaw({ action: 'addCategory', name: clean });
+            applyServerPayload(data);
+            showToast(`Category logged: ${clean}`);
+            render();
+          } catch (_) {
+            showToast(`Added "${clean}" (syncs when assigned)`);
+          }
+        }
+      }
+
+      async function handleRenameCategory(oldName, newName) {
+        const cleanNew = newName.trim();
+        if (!cleanNew || cleanNew === oldName) {
+          state.renamingCategoryName = null;
+          render();
+          return;
+        }
+
+        const affectedProjects = state.projects.filter(
+          (p) => (p.category || '').toLowerCase() === oldName.toLowerCase()
+        );
+
+        state.categories = mergeCategories(
+          state.categories.map((c) => (c.toLowerCase() === oldName.toLowerCase() ? cleanNew : c)),
+          []
+        );
+        state.projects.forEach((p) => {
+          if ((p.category || '').toLowerCase() === oldName.toLowerCase()) p.category = cleanNew;
+        });
+        if (state.categoryFilter.toLowerCase() === oldName.toLowerCase()) {
+          state.categoryFilter = cleanNew;
+        }
+        state.renamingCategoryName = null;
+        saveStoredCategories(state.categories);
+        render();
+
+        setSyncStatus('busy', 'Re-indexing Category…');
+        try {
+          const data = await postRaw({ action: 'renameCategory', oldName, newName: cleanNew });
+          applyServerPayload(data);
+          setSyncStatus('ok', `Noosphere Synced · ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`);
+          showToast(`Renamed "${oldName}" → "${cleanNew}"`);
+          render();
+        } catch (err) {
+          if (String(err.message || '').includes('Unknown action')) {
+            try {
+              for (const p of affectedProjects) {
+                await postRaw({ action: 'updateProject', id: p.id, category: cleanNew });
+              }
+              setSyncStatus('ok', `Noosphere Synced · ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`);
+              showToast(`Renamed "${oldName}" → "${cleanNew}"`);
+              render();
+            } catch (err2) {
+              setSyncStatus('err', 'Rename Failed');
+              showToast('Error: ' + err2.message);
+              fetchAllData(true);
+            }
+          } else {
+            setSyncStatus('err', 'Rename Failed');
+            showToast('Error: ' + err.message);
+            fetchAllData(true);
+          }
+        }
+      }
+
+      async function handleDeleteCategory(name) {
+        if (state.categories.length <= 1) {
+          showToast('Retain at least one category.');
+          return;
+        }
+        const remaining = state.categories.filter((c) => c.toLowerCase() !== name.toLowerCase());
+        const fallbackCat = remaining[0];
+        const affectedProjects = state.projects.filter(
+          (p) => (p.category || '').toLowerCase() === name.toLowerCase()
+        );
+
+        state.categories = remaining;
+        affectedProjects.forEach((p) => { p.category = fallbackCat; });
+        if (state.categoryFilter.toLowerCase() === name.toLowerCase()) {
+          state.categoryFilter = 'All';
+        }
+        saveStoredCategories(state.categories);
+        render();
+
+        setSyncStatus('busy', 'Purging Category…');
+        try {
+          const data = await postRaw({ action: 'deleteCategory', name, reassignTo: fallbackCat });
+          applyServerPayload(data);
+          setSyncStatus('ok', `Noosphere Synced · ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`);
+          showToast(
+            affectedProjects.length > 0
+              ? `Removed "${name}" (moved ${affectedProjects.length} to ${fallbackCat})`
+              : `Removed category "${name}"`
+          );
+          render();
+        } catch (err) {
+          if (String(err.message || '').includes('Unknown action')) {
+            try {
+              for (const p of affectedProjects) {
+                await postRaw({ action: 'updateProject', id: p.id, category: fallbackCat });
+              }
+              setSyncStatus('ok', `Noosphere Synced · ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`);
+              showToast(`Removed category "${name}"`);
+              render();
+            } catch (err2) {
+              setSyncStatus('err', 'Purge Failed');
+              showToast('Error: ' + err2.message);
+              fetchAllData(true);
+            }
+          } else {
+            setSyncStatus('err', 'Purge Failed');
+            showToast('Error: ' + err.message);
+            fetchAllData(true);
+          }
+        }
+      }
+
+      function renderCategoryManager() {
+        const listEl = $('categoryManagerList');
+        if (!listEl) return;
+
+        listEl.innerHTML = state.categories.map((cat) => {
+          const count = state.projects.filter((p) => (p.category || '').toLowerCase() === cat.toLowerCase()).length;
+          const isRenaming = state.renamingCategoryName === cat;
+
+          if (isRenaming) {
+            return `
+              <div class="cat-row">
+                <input type="text" class="rename-cat-input" data-old-cat="${escapeHtml(cat)}" value="${escapeHtml(cat)}" style="flex:1; min-width: 140px; height: 32px; padding: 4px 9px;" />
+                <div class="cat-row-actions">
+                  <button type="button" class="btn btn-sm btn-primary" data-cat-action="save-rename" data-cat="${escapeHtml(cat)}">Save</button>
+                  <button type="button" class="btn btn-sm" data-cat-action="cancel-rename">Cancel</button>
+                </div>
+              </div>
+            `;
+          }
+
+          return `
+            <div class="cat-row">
+              <div class="cat-row-info">
+                <span class="cat-row-name">${escapeHtml(cat)}</span>
+                <span class="cat-row-count">${count} ${count === 1 ? 'task' : 'tasks'}</span>
+              </div>
+              <div class="cat-row-actions">
+                <button type="button" class="btn btn-sm" data-cat-action="start-rename" data-cat="${escapeHtml(cat)}">Rename</button>
+                <button type="button" class="btn btn-sm btn-danger-soft" data-cat-action="delete-cat" data-cat="${escapeHtml(cat)}" ${state.categories.length <= 1 ? 'disabled' : ''}>Remove</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        listEl.querySelectorAll('[data-cat-action]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const act = btn.dataset.catAction;
+            const cat = btn.dataset.cat;
+            if (act === 'start-rename') {
+              state.renamingCategoryName = cat;
+              renderCategoryManager();
+              const inp = listEl.querySelector('.rename-cat-input');
+              if (inp) { inp.focus(); inp.select(); }
+            } else if (act === 'cancel-rename') {
+              state.renamingCategoryName = null;
+              renderCategoryManager();
+            } else if (act === 'save-rename') {
+              const inp = listEl.querySelector('.rename-cat-input');
+              if (inp) handleRenameCategory(cat, inp.value);
+            } else if (act === 'delete-cat') {
+              handleDeleteCategory(cat);
+            }
+          });
+        });
+
+        const activeRenameInput = listEl.querySelector('.rename-cat-input');
+        if (activeRenameInput) {
+          activeRenameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              handleRenameCategory(activeRenameInput.dataset.oldCat, activeRenameInput.value);
+            } else if (e.key === 'Escape') {
+              state.renamingCategoryName = null;
+              renderCategoryManager();
+            }
+          });
+        }
+      }
+
+      /* ===========================
+       * Selectors & Rendering
+       * =========================== */
+      function getTodayProjects() {
+        const today = getTodayISO();
+        return state.projects
+          .filter((p) => String(p.status || '').toLowerCase() !== 'done' && p.dueDate && p.dueDate <= today)
+          .sort((a, b) => (a.dueDate || '9999').localeCompare(b.dueDate || '9999'));
+      }
+
+      function getFilteredProjects() {
+        return state.projects
+          .filter((p) => {
+            if (!state.showDoneProjects && String(p.status || '').toLowerCase() === 'done') return false;
+            if (state.categoryFilter !== 'All' && (p.category || '').toLowerCase() !== state.categoryFilter.toLowerCase()) return false;
+            if (state.modifierFilters.size > 0) {
+              const mods = parseModifiers(p.modifiers).map((m) => m.toLowerCase());
+              for (const req of state.modifierFilters) {
+                if (!mods.includes(req.toLowerCase())) return false;
+              }
+            }
+            return true;
+          })
+          .sort((a, b) => {
+            const aDone = String(a.status || '').toLowerCase() === 'done' ? 1 : 0;
+            const bDone = String(b.status || '').toLowerCase() === 'done' ? 1 : 0;
+            if (aDone !== bDone) return aDone - bDone;
+            return (a.dueDate || '9999-99-99').localeCompare(b.dueDate || '9999-99-99');
+          });
+      }
+
+      function getAllModifiers() {
+        const set = new Set(DEFAULT_MODIFIERS);
+        state.projects.forEach((p) => parseModifiers(p.modifiers).forEach((m) => set.add(m)));
+        return Array.from(set);
+      }
+
+      function updateNavBadges() {
+        const todayItems = getTodayProjects();
+        const openProjects = state.projects.filter((p) => String(p.status || '').toLowerCase() !== 'done').length;
+        const openGroceries = state.groceries.filter((g) => !g.checked).length;
+
+        const todayBadge = $('badgeToday');
+        todayBadge.textContent = todayItems.length;
+        todayBadge.classList.toggle('alert', todayItems.some((p) => p.dueDate < getTodayISO()));
+
+        $('badgeProjects').textContent = openProjects;
+        $('badgeGroceries').textContent = openGroceries;
+
+        document.querySelectorAll('.nav-tab').forEach((btn) => {
+          btn.classList.toggle('active', btn.dataset.tab === state.activeTab);
+        });
+      }
+
+      function updatePrintHeader() {
+        const dateLabel = new Date().toLocaleDateString(undefined, {
+          weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+        });
+
+        if (state.activeTab === 'today') {
+          $('printTitle').textContent = 'Today’s Home Projects';
+          $('printMeta').textContent = dateLabel;
+        } else if (state.activeTab === 'projects') {
+          $('printTitle').textContent = 'Home Projects Checklist';
+          const parts = [dateLabel];
+          if (state.categoryFilter !== 'All') parts.push(`Category: ${state.categoryFilter}`);
+          if (state.modifierFilters.size > 0) parts.push(`Tags: ${Array.from(state.modifierFilters).join(', ')}`);
+          $('printMeta').textContent = parts.join(' · ');
+        } else {
+          $('printTitle').textContent = 'Grocery Requisition List';
+          $('printMeta').textContent = dateLabel;
+        }
+      }
+
+      function renderProjectComposer(defaultDate) {
+        const modifiers = getAllModifiers();
+        return `
+          <form class="composer-card no-print" id="projectForm">
+            <div class="composer-top">
+              <input type="text" id="newProjTitle" placeholder="Log a new home maintenance directive…" required autocomplete="off" />
+              <button type="submit" class="btn btn-primary">+ Log Project</button>
+            </div>
+            <div class="composer-fields">
+              <div class="field-group">
+                <label class="field-label" for="newProjCategory">Category</label>
+                <select id="newProjCategory">
+                  ${state.categories.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}
+                  <option value="__NEW__">+ New category…</option>
+                </select>
+              </div>
+              <div class="field-group">
+                <label class="field-label" for="newProjDate">Due Date</label>
+                <input type="date" id="newProjDate" value="${escapeHtml(defaultDate || '')}" />
+              </div>
+              <div class="field-group">
+                <span class="field-label">Modifiers</span>
+                <div class="modifier-selector" id="newProjMods">
+                  ${modifiers.map((m) => `
+                    <button type="button" class="mod-toggle ${state.composerModifiers.has(m) ? 'selected' : ''}" data-mod="${escapeHtml(m)}">${escapeHtml(m)}</button>
+                  `).join('')}
+                </div>
+              </div>
+            </div>
+            <div class="field-group" style="margin-top: 10px;">
+              <label class="field-label" for="newProjNotes">Tech-Notes (optional)</label>
+              <input type="text" id="newProjNotes" placeholder="Parts required, measurements, vendor hours…" autocomplete="off" />
+            </div>
+          </form>
+        `;
+      }
+
+      function renderProjectCard(p) {
+        const isDone = String(p.status || '').toLowerCase() === 'done';
+        const today = getTodayISO();
+        const isOverdue = !isDone && p.dueDate && p.dueDate < today;
+        const isDueToday = !isDone && p.dueDate && p.dueDate === today;
+        const dateClass = isOverdue ? 'overdue' : (isDueToday ? 'due-today' : '');
+        const mods = parseModifiers(p.modifiers);
+        const isEditingDate = state.editingDateId === p.id;
+        const isEditingCat = state.editingCategoryId === p.id;
+        const isEditingMods = state.editingModifiersId === p.id;
+        const isEditingNote = state.editingNotes.has(p.id);
+        const isExpandedNote = state.expandedNotes.has(p.id);
+        const hasNotes = Boolean(p.notes && p.notes.trim());
+        const allKnownMods = getAllModifiers();
+        const modSetLower = new Set(mods.map((m) => m.toLowerCase()));
+
+        return `
+          <article class="task-card ${isDone ? 'is-done' : ''}" data-project-id="${escapeHtml(p.id)}">
+            <div class="task-main">
+              <span class="print-checkbox">${isDone ? '☑' : '☐'}</span>
+              <button type="button" class="check-btn ${isDone ? 'checked' : ''}" data-action="toggle-project" data-id="${escapeHtml(p.id)}" aria-label="${isDone ? 'Mark incomplete' : 'Mark done'}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </button>
+
+              <div class="task-body">
+                <div class="task-title-row">
+                  <div class="task-title">${escapeHtml(p.title)}</div>
+                  <button type="button" class="btn-icon danger" data-action="delete-project" data-id="${escapeHtml(p.id)}" title="Purge project" aria-label="Delete project">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                  </button>
+                </div>
+
+                <div class="task-meta">
+                  ${isEditingCat ? `
+                    <select class="inline-select no-print" data-action="change-cat-select" data-id="${escapeHtml(p.id)}">
+                      ${state.categories.map((c) => `<option value="${escapeHtml(c)}" ${c === p.category ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('')}
+                      <option value="__NEW__">+ New category…</option>
+                    </select>
+                  ` : `
+                    <button type="button" class="badge badge-cat" data-action="edit-cat" data-id="${escapeHtml(p.id)}" title="Click to change category">${escapeHtml(p.category || 'Uncategorized')}</button>
+                  `}
+
+                  ${mods.map((m) => `<button type="button" class="badge badge-mod" data-action="edit-mods" data-id="${escapeHtml(p.id)}" title="Click to edit modifiers">${escapeHtml(m)}</button>`).join('')}
+
+                  <button type="button" class="notes-toggle no-print" data-action="edit-mods" data-id="${escapeHtml(p.id)}" title="Add or remove modifiers">
+                    ${isEditingMods ? 'Close tags' : (mods.length ? '± Tags' : '+ Tag')}
+                  </button>
+
+                  <span class="date-badge-wrap">
+                    ${isEditingDate ? `
+                      <input type="date" class="inline-date-input" data-action="change-date-input" data-id="${escapeHtml(p.id)}" value="${escapeHtml(p.dueDate || '')}" />
+                      <button type="button" class="notes-toggle" data-action="cancel-date" data-id="${escapeHtml(p.id)}">Done</button>
+                    ` : `
+                      <button type="button" class="badge badge-date ${dateClass}" data-action="edit-date" data-id="${escapeHtml(p.id)}" title="Click to change due date">
+                        <svg class="no-print" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                        ${escapeHtml(formatDisplayDate(p.dueDate))}
+                      </button>
+                    `}
+                  </span>
+
+                  <button type="button" class="notes-toggle" data-action="toggle-notes" data-id="${escapeHtml(p.id)}">
+                    ${hasNotes ? (isExpandedNote || isEditingNote ? 'Hide notes' : 'View / edit notes') : '+ Add note'}
+                  </button>
+                </div>
+
+                ${isEditingMods ? `
+                  <div class="mod-editor no-print">
+                    <div class="mod-editor-header">
+                      <span class="mod-editor-label">Toggle Modifiers</span>
+                      <button type="button" class="notes-toggle" data-action="close-mods" data-id="${escapeHtml(p.id)}">Done</button>
+                    </div>
+                    <div class="mod-editor-pills">
+                      ${allKnownMods.map((m) => {
+                        const active = modSetLower.has(m.toLowerCase());
+                        return `<button type="button" class="mod-toggle ${active ? 'selected' : ''}" data-action="toggle-proj-mod" data-id="${escapeHtml(p.id)}" data-mod-name="${escapeHtml(m)}">${active ? '✓ ' : '+ '}${escapeHtml(m)}</button>`;
+                      }).join('')}
+                    </div>
+                    <form class="mod-editor-custom" data-mod-form-id="${escapeHtml(p.id)}">
+                      <input type="text" placeholder="Add custom modifier (e.g. Weekend, Urgent)…" autocomplete="off" />
+                      <button type="submit" class="btn btn-sm btn-primary">+ Add</button>
+                    </form>
+                  </div>
+                ` : ''}
+
+                ${hasNotes && !isEditingNote ? `<div class="print-notes">Notes: ${escapeHtml(p.notes)}</div>` : ''}
+
+                ${isEditingNote ? `
+                  <div class="notes-editor">
+                    <textarea id="noteInput-${escapeHtml(p.id)}" placeholder="Add project notes, part numbers, or measurements…">${escapeHtml(p.notes || '')}</textarea>
+                    <div class="notes-editor-actions">
+                      <button type="button" class="btn btn-sm" data-action="cancel-note" data-id="${escapeHtml(p.id)}">Cancel</button>
+                      <button type="button" class="btn btn-sm btn-primary" data-action="save-note" data-id="${escapeHtml(p.id)}">Save Notes</button>
+                    </div>
+                  </div>
+                ` : (isExpandedNote && hasNotes ? `
+                  <div class="notes-preview" data-action="start-edit-note" data-id="${escapeHtml(p.id)}" title="Click to edit notes">${escapeHtml(p.notes)}</div>
+                ` : '')}
+              </div>
+            </div>
+          </article>
+        `;
+      }
+
+      function renderTodayView() {
+        const items = getTodayProjects();
+        const overdueCount = items.filter((p) => p.dueDate < getTodayISO()).length;
+
+        return `
+          ${renderProjectComposer(getTodayISO())}
+          <div class="view-toolbar">
+            <div class="view-heading">
+              <h2>Priority Rites // Today &amp; Overdue</h2>
+              <span class="view-count">
+                ${items.length} ${items.length === 1 ? 'directive' : 'directives'}${overdueCount ? ` · ${overdueCount} overdue` : ''}
+              </span>
+            </div>
+          </div>
+          ${items.length === 0 ? `
+            <div class="empty-state">
+              <h3>All Rites Fulfilled</h3>
+              <p>No overdue or due-today tasks remain. Praise the Omnissiah.</p>
+            </div>
+          ` : `<div class="list-stack">${items.map(renderProjectCard).join('')}</div>`}
+        `;
+      }
+
+      function renderAllProjectsView() {
+        const categories = ['All', ...state.categories];
+        const modifiers = getAllModifiers();
+        const items = getFilteredProjects();
+
+        return `
+          ${renderProjectComposer('')}
+
+          <div class="filter-panel no-print">
+            <div class="filter-row">
+              <span class="filter-label">Category</span>
+              <div class="pill-group">
+                ${categories.map((cat) => `
+                  <button type="button" class="pill ${state.categoryFilter === cat ? 'active' : ''}" data-filter-cat="${escapeHtml(cat)}">${escapeHtml(cat)}</button>
+                `).join('')}
+                <button type="button" class="pill pill-manage" id="openCategoriesInlineBtn">+ Edit Categories</button>
+              </div>
+            </div>
+            <div class="filter-row">
+              <span class="filter-label">Modifiers</span>
+              <div class="pill-group">
+                ${modifiers.map((mod) => `
+                  <button type="button" class="pill ${state.modifierFilters.has(mod) ? 'mod-active' : ''}" data-filter-mod="${escapeHtml(mod)}">${escapeHtml(mod)}</button>
+                `).join('')}
+                ${(state.categoryFilter !== 'All' || state.modifierFilters.size > 0) ? `
+                  <button type="button" class="notes-toggle" id="clearFiltersBtn">Reset filters</button>
+                ` : ''}
+              </div>
+            </div>
+          </div>
+
+          <div class="view-toolbar">
+            <div class="view-heading">
+              <h2>All Maintenance Directives</h2>
+              <span class="view-count">Showing ${items.length} of ${state.projects.length}</span>
+            </div>
+            <label style="display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:12px;color:var(--ink-muted);cursor:pointer;">
+              <input type="checkbox" id="toggleShowDone" ${state.showDoneProjects ? 'checked' : ''} style="accent-color:var(--crimson);" />
+              Show completed
+            </label>
+          </div>
+
+          ${items.length === 0 ? `
+            <div class="empty-state">
+              <h3>No Matching Directives</h3>
+              <p>Clear a category or modifier filter, or log a new project above.</p>
+            </div>
+          ` : `<div class="list-stack">${items.map(renderProjectCard).join('')}</div>`}
+        `;
+      }
+
+      function renderGroceriesView() {
+        const checkedCount = state.groceries.filter((g) => g.checked).length;
+        const remainingCount = state.groceries.length - checkedCount;
+
+        const groups = new Map();
+        state.groceries.forEach((g) => {
+          const dept = g.department || 'Other';
+          if (!groups.has(dept)) groups.set(dept, []);
+          groups.get(dept).push(g);
+        });
+
+        const sortedDepts = Array.from(groups.keys()).sort((a, b) => {
+          const ia = DEFAULT_DEPARTMENTS.indexOf(a);
+          const ib = DEFAULT_DEPARTMENTS.indexOf(b);
+          if (ia !== -1 && ib !== -1) return ia - ib;
+          if (ia !== -1) return -1;
+          if (ib !== -1) return 1;
+          return a.localeCompare(b);
+        });
+
+        const deptOptions = Array.from(new Set([...DEFAULT_DEPARTMENTS, ...sortedDepts]));
+
+        return `
+          <form class="composer-card no-print" id="groceryForm">
+            <div class="composer-top">
+              <input type="text" id="newGrocItem" placeholder="Add supply requisition…" required autocomplete="off" />
+              <select id="newGrocDept" aria-label="Department">
+                ${deptOptions.map((d) => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('')}
+              </select>
+              <input type="text" id="newGrocQty" placeholder="Qty (e.g. 2 lbs)" value="1" style="width: 115px; flex: 0 0 auto;" />
+              <button type="submit" class="btn btn-primary">+ Requisition</button>
+            </div>
+          </form>
+
+          <div class="view-toolbar">
+            <div class="view-heading">
+              <h2>Supply Requisitions // Groceries</h2>
+              <span class="view-count">${remainingCount} pending · ${checkedCount} acquired</span>
+            </div>
+            <button type="button" class="btn btn-danger-soft" id="clearCheckedBtn" ${checkedCount === 0 ? 'disabled' : ''}>
+              Clear Checked (${checkedCount})
+            </button>
+          </div>
+
+          ${state.groceries.length === 0 ? `
+            <div class="empty-state">
+              <h3>Requisition Manifest Empty</h3>
+              <p>Add supplies above and they will group automatically by sector/department.</p>
+            </div>
+          ` : sortedDepts.map((dept) => {
+            const list = groups.get(dept).slice().sort((a, b) => Number(a.checked) - Number(b.checked));
+            const uncheckedInDept = list.filter((x) => !x.checked).length;
+            return `
+              <section class="dept-group">
+                <div class="dept-header">
+                  <span class="dept-title">${escapeHtml(dept)}</span>
+                  <span class="dept-count">${uncheckedInDept} / ${list.length}</span>
+                </div>
+                ${list.map((g) => `
+                  <div class="grocery-row ${g.checked ? 'is-checked' : ''}">
+                    <span class="print-checkbox">${g.checked ? '☑' : '☐'}</span>
+                    <button type="button" class="check-btn ${g.checked ? 'checked' : ''}" data-action="toggle-grocery" data-id="${escapeHtml(g.id)}" aria-label="${g.checked ? 'Uncheck item' : 'Check off item'}">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    </button>
+                    <span class="grocery-name">${escapeHtml(g.item)}</span>
+                    <span class="grocery-qty">${escapeHtml(g.quantity || '1')}</span>
+                    <button type="button" class="btn-icon danger" data-action="delete-grocery" data-id="${escapeHtml(g.id)}" title="Remove item" aria-label="Remove item">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                    </button>
+                  </div>
+                `).join('')}
+              </section>
+            `;
+          }).join('')}
+        `;
+      }
+
+      function render() {
+        updateNavBadges();
+        updatePrintHeader();
+        renderCategoryManager();
+        const container = $('viewContainer');
+
+        if (state.loading && state.projects.length === 0 && state.groceries.length === 0) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <h3>Initializing Cogitator…</h3>
+              <p>Querying Noosphere data vaults from Google Sheets.</p>
+            </div>
+          `;
+          return;
+        }
+
+        if (state.activeTab === 'today') {
+          container.innerHTML = renderTodayView();
+        } else if (state.activeTab === 'projects') {
+          container.innerHTML = renderAllProjectsView();
+        } else {
+          container.innerHTML = renderGroceriesView();
+        }
+
+        bindViewEvents();
+      }
+
+      function bindViewEvents() {
+        const container = $('viewContainer');
+
+        const projForm = $('projectForm');
+        if (projForm) {
+          const catSelect = $('newProjCategory');
+          catSelect.addEventListener('change', async () => {
+            if (catSelect.value === '__NEW__') {
+              const name = window.prompt('Enter new category name:');
+              if (name && name.trim()) {
+                await handleAddCategory(name.trim());
+                const refreshed = $('newProjCategory');
+                if (refreshed) refreshed.value = name.trim();
+              } else {
+                catSelect.value = state.categories[0] || '';
+              }
+            }
+          });
+
+          projForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const title = $('newProjTitle').value.trim();
+            if (!title) return;
+            const category = $('newProjCategory').value;
+            const dueDate = $('newProjDate').value;
+            const notes = $('newProjNotes').value.trim();
+            const modifiers = Array.from(state.composerModifiers).join(', ');
+            const tempId = 'P-' + Date.now().toString(36).toUpperCase();
+
+            state.composerModifiers.clear();
+            await postAction(
+              { action: 'addProject', id: tempId, title, category, modifiers, dueDate, status: 'Todo', notes },
+              () => {
+                state.projects.push({ id: tempId, title, category, modifiers, dueDate, status: 'Todo', notes });
+              },
+              'Directive logged'
+            );
+          });
+
+          container.querySelectorAll('[data-mod]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+              const mod = btn.dataset.mod;
+              if (state.composerModifiers.has(mod)) state.composerModifiers.delete(mod);
+              else state.composerModifiers.add(mod);
+              btn.classList.toggle('selected', state.composerModifiers.has(mod));
+            });
+          });
+        }
+
+        const grocForm = $('groceryForm');
+        if (grocForm) {
+          grocForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const item = $('newGrocItem').value.trim();
+            if (!item) return;
+            const department = $('newGrocDept').value;
+            const quantity = $('newGrocQty').value.trim() || '1';
+            const tempId = 'G-' + Date.now().toString(36).toUpperCase();
+
+            await postAction(
+              { action: 'addGrocery', id: tempId, item, department, quantity, checked: false },
+              () => {
+                state.groceries.push({ id: tempId, item, department, quantity, checked: false });
+              },
+              'Requisition logged'
+            );
+          });
+        }
+
+        const clearBtn = $('clearCheckedBtn');
+        if (clearBtn) {
+          clearBtn.addEventListener('click', async () => {
+            await postAction(
+              { action: 'clearCheckedGroceries' },
+              () => { state.groceries = state.groceries.filter((g) => !g.checked); },
+              'Purged checked requisitions'
+            );
+          });
+        }
+
+        container.querySelectorAll('[data-filter-cat]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            state.categoryFilter = btn.dataset.filterCat;
+            render();
+          });
+        });
+
+        const openCatInline = $('openCategoriesInlineBtn');
+        if (openCatInline) {
+          openCatInline.addEventListener('click', () => {
+            $('categoryPanel').classList.add('open');
+            $('newCategoryInput').focus();
+            $('categoryPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          });
+        }
+
+        container.querySelectorAll('[data-filter-mod]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const m = btn.dataset.filterMod;
+            if (state.modifierFilters.has(m)) state.modifierFilters.delete(m);
+            else state.modifierFilters.add(m);
+            render();
+          });
+        });
+
+        const clearFiltersBtn = $('clearFiltersBtn');
+        if (clearFiltersBtn) {
+          clearFiltersBtn.addEventListener('click', () => {
+            state.categoryFilter = 'All';
+            state.modifierFilters.clear();
+            render();
+          });
+        }
+
+        const toggleShowDone = $('toggleShowDone');
+        if (toggleShowDone) {
+          toggleShowDone.addEventListener('change', (e) => {
+            state.showDoneProjects = e.target.checked;
+            render();
+          });
+        }
+
+        container.querySelectorAll('[data-action]').forEach((el) => {
+          const action = el.dataset.action;
+          const id = el.dataset.id;
+
+          if (action === 'change-date-input') {
+            el.addEventListener('change', async () => {
+              const newDate = el.value;
+              state.editingDateId = null;
+              await postAction(
+                { action: 'updateProject', id, dueDate: newDate },
+                () => {
+                  const p = state.projects.find((x) => x.id === id);
+                  if (p) p.dueDate = newDate;
+                },
+                'Due date recalibrated'
+              );
+            });
+            setTimeout(() => {
+              el.focus();
+              if (typeof el.showPicker === 'function') {
+                try { el.showPicker(); } catch (_) {}
+              }
+            }, 20);
+            return;
+          }
+
+          if (action === 'change-cat-select') {
+            el.addEventListener('change', async () => {
+              let nextCat = el.value;
+              state.editingCategoryId = null;
+              if (nextCat === '__NEW__') {
+                const name = window.prompt('Enter new category name:');
+                if (!name || !name.trim()) { render(); return; }
+                nextCat = name.trim();
+                await handleAddCategory(nextCat);
+              }
+              await postAction(
+                { action: 'updateProject', id, category: nextCat },
+                () => {
+                  const p = state.projects.find((x) => x.id === id);
+                  if (p) p.category = nextCat;
+                },
+                `Reassigned to ${nextCat}`
+              );
+            });
+            el.addEventListener('blur', () => {
+              if (state.editingCategoryId === id) {
+                state.editingCategoryId = null;
+                render();
+              }
+            });
+            setTimeout(() => el.focus(), 15);
+            return;
+          }
+
+          el.addEventListener('click', async () => {
+            if (action === 'toggle-project') {
+              const proj = state.projects.find((x) => x.id === id);
+              if (!proj) return;
+              const nextStatus = String(proj.status || '').toLowerCase() === 'done' ? 'Todo' : 'Done';
+              await postAction(
+                { action: 'toggleProjectStatus', id, status: nextStatus },
+                () => { proj.status = nextStatus; },
+                nextStatus === 'Done' ? 'Rite Completed' : 'Directive Reopened'
+              );
+            } else if (action === 'delete-project') {
+              await postAction(
+                { action: 'deleteProject', id },
+                () => { state.projects = state.projects.filter((x) => x.id !== id); },
+                'Directive purged'
+              );
+            } else if (action === 'edit-date') {
+              state.editingCategoryId = null;
+              state.editingModifiersId = null;
+              state.editingDateId = id;
+              render();
+            } else if (action === 'cancel-date') {
+              state.editingDateId = null;
+              render();
+            } else if (action === 'edit-cat') {
+              state.editingDateId = null;
+              state.editingModifiersId = null;
+              state.editingCategoryId = id;
+              render();
+            } else if (action === 'edit-mods') {
+              state.editingDateId = null;
+              state.editingCategoryId = null;
+              state.editingModifiersId = state.editingModifiersId === id ? null : id;
+              render();
+            } else if (action === 'close-mods') {
+              state.editingModifiersId = null;
+              render();
+            } else if (action === 'toggle-proj-mod') {
+              const proj = state.projects.find((x) => x.id === id);
+              if (!proj) return;
+              const modName = el.dataset.modName;
+              const current = parseModifiers(proj.modifiers);
+              const exists = current.some((m) => m.toLowerCase() === modName.toLowerCase());
+              const nextMods = exists
+                ? current.filter((m) => m.toLowerCase() !== modName.toLowerCase())
+                : [...current, modName];
+              const modStr = nextMods.join(', ');
+              await postAction(
+                { action: 'updateProject', id, modifiers: modStr },
+                () => { proj.modifiers = modStr; },
+                exists ? `Removed tag: ${modName}` : `Added tag: ${modName}`
+              );
+            } else if (action === 'toggle-notes') {
+              const proj = state.projects.find((x) => x.id === id);
+              const hasNotes = Boolean(proj && proj.notes && proj.notes.trim());
+              if (!hasNotes) {
+                state.editingNotes.add(id);
+                state.expandedNotes.add(id);
+              } else if (state.editingNotes.has(id) || state.expandedNotes.has(id)) {
+                state.editingNotes.delete(id);
+                state.expandedNotes.delete(id);
+              } else {
+                state.expandedNotes.add(id);
+              }
+              render();
+              const ta = $('noteInput-' + id);
+              if (ta) ta.focus();
+            } else if (action === 'start-edit-note') {
+              state.editingNotes.add(id);
+              render();
+              const ta = $('noteInput-' + id);
+              if (ta) ta.focus();
+            } else if (action === 'cancel-note') {
+              state.editingNotes.delete(id);
+              render();
+            } else if (action === 'save-note') {
+              const ta = $('noteInput-' + id);
+              const notes = ta ? ta.value.trim() : '';
+              state.editingNotes.delete(id);
+              if (notes) state.expandedNotes.add(id);
+              else state.expandedNotes.delete(id);
+
+              await postAction(
+                { action: 'updateProject', id, notes },
+                () => {
+                  const p = state.projects.find((x) => x.id === id);
+                  if (p) p.notes = notes;
+                },
+                'Tech-notes inscribed'
+              );
+            } else if (action === 'toggle-grocery') {
+              const item = state.groceries.find((x) => x.id === id);
+              if (!item) return;
+              const nextVal = !item.checked;
+              await postAction(
+                { action: 'toggleGrocery', id, checked: nextVal },
+                () => { item.checked = nextVal; },
+                nextVal ? 'Supply acquired' : 'Marked pending'
+              );
+            } else if (action === 'delete-grocery') {
+              await postAction(
+                { action: 'deleteGrocery', id },
+                () => { state.groceries = state.groceries.filter((x) => x.id !== id); },
+                'Item purged'
+              );
+            }
+          });
+        });
+
+        container.querySelectorAll('[data-mod-form-id]').forEach((form) => {
+          form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = form.dataset.modFormId;
+            const input = form.querySelector('input');
+            const newTag = (input ? input.value : '').replace(/,/g, '').trim();
+            if (!newTag) return;
+            const proj = state.projects.find((x) => x.id === id);
+            if (!proj) return;
+            const current = parseModifiers(proj.modifiers);
+            if (current.some((m) => m.toLowerCase() === newTag.toLowerCase())) {
+              if (input) input.value = '';
+              showToast(`"${newTag}" already attached`);
+              return;
+            }
+            const modStr = [...current, newTag].join(', ');
+            if (input) input.value = '';
+            await postAction(
+              { action: 'updateProject', id, modifiers: modStr },
+              () => { proj.modifiers = modStr; },
+              `Added tag: ${newTag}`
+            );
+          });
+        });
+
+        container.querySelectorAll('.notes-editor textarea').forEach((ta) => {
+          ta.addEventListener('keydown', (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+              const id = ta.id.replace('noteInput-', '');
+              const saveBtn = container.querySelector(`[data-action="save-note"][data-id="${CSS.escape(id)}"]`);
+              if (saveBtn) saveBtn.click();
+            }
+          });
+        });
+      }
+
+      // Global Listeners
+      document.querySelectorAll('.nav-tab').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.activeTab = btn.dataset.tab;
+          state.editingDateId = null;
+          state.editingCategoryId = null;
+          state.editingModifiersId = null;
+          render();
+        });
+      });
+
+      $('refreshBtn').addEventListener('click', () => fetchAllData(false));
+      $('printBtn').addEventListener('click', () => {
+        updatePrintHeader();
+        window.print();
+      });
+
+      $('settingsBtn').addEventListener('click', () => {
+        $('categoryPanel').classList.remove('open');
+        $('settingsPanel').classList.toggle('open');
+        $('apiUrlInput').value = state.apiUrl;
+      });
+      $('closeSettingsBtn').addEventListener('click', () => $('settingsPanel').classList.remove('open'));
+
+      $('categoriesBtn').addEventListener('click', () => {
+        $('settingsPanel').classList.remove('open');
+        $('categoryPanel').classList.toggle('open');
+        if ($('categoryPanel').classList.contains('open')) {
+          renderCategoryManager();
+          $('newCategoryInput').focus();
+        }
+      });
+      $('closeCategoriesBtn').addEventListener('click', () => {
+        state.renamingCategoryName = null;
+        $('categoryPanel').classList.remove('open');
+      });
+
+      $('addCategoryForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const input = $('newCategoryInput');
+        const val = input.value.trim();
+        if (!val) return;
+        input.value = '';
+        await handleAddCategory(val);
+      });
+
+      $('saveApiUrlBtn').addEventListener('click', () => {
+        const nextUrl = $('apiUrlInput').value.trim();
+        if (!nextUrl) return;
+        state.apiUrl = nextUrl;
+        localStorage.setItem(STORAGE_URL_KEY, nextUrl);
+        $('lockApiUrlInput').value = nextUrl;
+        $('settingsPanel').classList.remove('open');
+        fetchAllData(false);
+      });
+
+      $('logoutBtn').addEventListener('click', () => {
+        lockDashboard('');
+        showToast('Data-Slate locked');
+      });
+
+      $('lockForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const val = $('passcodeInput').value;
+        if (!val) return;
+        await attemptUnlock(val, false);
+      });
+
+      $('togglePassVisBtn').addEventListener('click', () => {
+        const inp = $('passcodeInput');
+        const showing = inp.type === 'text';
+        inp.type = showing ? 'password' : 'text';
+        $('togglePassVisBtn').textContent = showing ? 'Show' : 'Hide';
+        inp.focus();
+      });
+
+      $('lockSaveApiUrlBtn').addEventListener('click', () => {
+        const nextUrl = $('lockApiUrlInput').value.trim();
+        if (!nextUrl) return;
+        state.apiUrl = nextUrl;
+        localStorage.setItem(STORAGE_URL_KEY, nextUrl);
+        $('apiUrlInput').value = nextUrl;
+        setLockError('');
+        showToast('Vox-Link URL updated');
+      });
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && state.unlocked && state.passcode && !state.loading) {
+          fetchAllData(true);
+        }
+      });
+
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        state.deferredInstallPrompt = e;
+        $('installAppBtn').classList.remove('hidden');
+      });
+
+      $('installAppBtn').addEventListener('click', async () => {
+        if (!state.deferredInstallPrompt) return;
+        state.deferredInstallPrompt.prompt();
+        await state.deferredInstallPrompt.userChoice;
+        state.deferredInstallPrompt = null;
+        $('installAppBtn').classList.add('hidden');
+      });
+
+      window.addEventListener('appinstalled', () => {
+        $('installAppBtn').classList.add('hidden');
+        showToast('Data-Slate installed to home screen');
+      });
+
+      if ('serviceWorker' in navigator && /^https?:$/.test(window.location.protocol)) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js').catch(() => {});
+        });
+      }
+
+      $('apiUrlInput').value = state.apiUrl;
+      $('lockApiUrlInput').value = state.apiUrl;
+
+      // Boot: require passcode before revealing dashboard
+      if (state.passcode) {
+        attemptUnlock(state.passcode, true);
+      } else {
+        lockDashboard('');
+      }
+    })();
+  </script>
+</body>
+</html>
